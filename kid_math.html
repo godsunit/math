@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrightMath — PK–5 Learning & Practice</title>
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --panel:#111827ee; /* gray-900 */
+      --card:#1f2937; /* gray-800 */
+      --accent:#22c55e; /* green-500 */
+      --accent-2:#60a5fa; /* blue-400 */
+      --text:#f8fafc; /* slate-50 */
+      --muted:#cbd5e1; /* slate-300 */
+      --warn:#f97316; /* orange-500 */
+      --danger:#ef4444;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, var(--bg) 60%),
+                  radial-gradient(1000px 600px at 120% 0%, #0b1020 0%, #020617 60%);
+    }
+    header{
+      position:sticky;top:0;z-index:20;
+      display:flex;gap:12px;align-items:center;justify-content:space-between;
+      padding:16px 20px; backdrop-filter: blur(10px);
+      background:linear-gradient(180deg, rgba(2,6,23,.8), rgba(2,6,23,.3));
+      border-bottom:1px solid #263042;
+    }
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.5px}
+    .brand .logo{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;
+      background: conic-gradient(from 45deg, var(--accent) 0 25%, transparent 0 50%, var(--accent-2) 0 75%, transparent 0 100%);
+      outline:2px solid #1a2a3f; box-shadow: 0 6px 20px #0008 inset, 0 0 0 2px #0006 inset;
+      font-weight:900;color:#0b1220}
+    .bar{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{
+      background:#0b1220;border:1px solid #253248;color:var(--muted);
+      padding:8px 12px;border-radius:999px;cursor:pointer;transition:150ms transform, 150ms background, 150ms color;
+      user-select:none
+    }
+    .pill.active{background:linear-gradient(180deg,#1e293b,#0b1220);color:#e2e8f0;border-color:#334155}
+    .container{max-width:1100px;margin:20px auto;padding:0 16px;display:grid;grid-template-columns: 320px 1fr;gap:16px}
+    @media (max-width: 980px){.container{grid-template-columns:1fr}}
+
+    .panel{background:linear-gradient(180deg,#0b1220,#0b1220);border:1px solid #1f2a3c;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .panel h2{margin:0;padding:16px 16px;border-bottom:1px solid #1f2a3c;font-size:1rem;color:#d1e3ff;text-transform:uppercase;letter-spacing:.08em}
+    .panel .content{padding:16px}
+
+    .section{background:var(--card);border:1px solid #2b3b54;border-radius:18px;padding:16px}
+    .section h3{margin:0 0 8px 0;font-size:1.1rem;color:#d8f3dc}
+    .muted{color:var(--muted)}
+
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:720px){.grid-2{grid-template-columns:1fr}}
+
+    .ops button{border:1px solid #2b3b54;background:#0b1220;color:#e2e8f0;padding:10px 12px;border-radius:12px;cursor:pointer}
+    .ops button.active{outline:2px solid #3b82f6;border-color:#385b96}
+
+    .lesson{line-height:1.5}
+    .example{background:#0c1424;border:1px dashed #274264;border-radius:12px;padding:12px;margin:12px 0}
+
+    .card{background:linear-gradient(180deg,#0b1220,#0d1528);border:1px solid #283a56;border-radius:18px;padding:18px;box-shadow:0 10px 24px #0008}
+    .big{font-size:2.8rem;text-align:center;font-weight:800;letter-spacing:.02em}
+    .equation{font-variant-numeric:tabular-nums}
+
+    .answer-row{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px}
+    input.answer{font-size:1.8rem;width:160px;text-align:center;padding:10px;border-radius:12px;border:1px solid #334155;background:#0b1220;color:#e2e8f0}
+    .btn{cursor:pointer;border:1px solid #2b3b54;background:#0b1220;color:#e2e8f0;padding:10px 14px;border-radius:12px;font-weight:600}
+    .btn.primary{background:linear-gradient(180deg,#16a34a,#15803d);border-color:#166534}
+    .btn.alt{background:linear-gradient(180deg,#2563eb,#1d4ed8);border-color:#1e40af}
+    .btn.warn{background:linear-gradient(180deg,#ea580c,#c2410c);border-color:#9a3412}
+
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .keypad button{padding:12px 0;font-size:1.25rem;border-radius:12px;border:1px solid #2b3b54;background:#0b1220;color:#e2e8f0}
+
+    .stats{display:flex;gap:12px;flex-wrap:wrap}
+    .stat{background:#0c1424;border:1px solid #274264;border-radius:12px;padding:8px 12px}
+
+    .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0c1424;border:1px solid #274264;padding:10px 14px;border-radius:12px;display:none}
+    .toast.good{border-color:#14532d}
+    .toast.bad{border-color:#7f1d1d}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><div class="logo">＋</div><div>BrightMath <span class="muted" style="font-weight:500">PK–5</span></div></div>
+    <div class="bar" id="gradeBar"></div>
+    <div class="bar">
+      <div class="pill" data-mode="learn">Lesson</div>
+      <div class="pill active" data-mode="test">Practice</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <aside class="panel" aria-label="Controls">
+      <h2>Setup</h2>
+      <div class="content">
+        <div class="section">
+          <h3>Operation</h3>
+          <div class="ops" id="ops">
+            <div class="grid-2">
+              <button data-op="add" class="active">Addition (＋)</button>
+              <button data-op="sub">Subtraction (−)</button>
+              <button data-op="mul">Multiplication (×)</button>
+              <button data-op="div">Division (÷)</button>
+              <button data-op="mix">Mixed</button>
+              <button id="resetStats" class="warn">Reset Stats</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Stats</h3>
+          <div class="stats" id="stats">
+            <div class="stat">Grade: <b id="statGrade">K</b></div>
+            <div class="stat">Correct: <b id="statCorrect">0</b></div>
+            <div class="stat">Streak: <b id="statStreak">0</b></div>
+            <div class="stat">Best: <b id="statBest">0</b></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Tips</h3>
+          <div class="muted">Use the on‑screen keypad or your keyboard. Press Enter to submit and Space for Next.</div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="panel" aria-live="polite">
+      <h2 id="modeTitle">Practice</h2>
+      <div class="content" id="mainContent">
+        <!-- Dynamic content goes here -->
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ====== Data & Utilities ====== */
+    const grades = [
+      { key:"pk", label:"PreK/K", ranges:{ add:[0,5], sub:[0,5], mul:[0,1], div:[1,2] }, allowNegative:false },
+      { key:"g1", label:"1st", ranges:{ add:[0,10], sub:[0,10], mul:[0,2], div:[1,2] }, allowNegative:false },
+      { key:"g2", label:"2nd", ranges:{ add:[0,20], sub:[0,20], mul:[0,5], div:[1,5] }, allowNegative:false },
+      { key:"g3", label:"3rd", ranges:{ add:[0,100], sub:[0,100], mul:[0,10], div:[1,10] }, allowNegative:false },
+      { key:"g4", label:"4th", ranges:{ add:[0,1000], sub:[0,1000], mul:[0,12], div:[1,12] }, allowNegative:false },
+      { key:"g5", label:"5th", ranges:{ add:[0,10000], sub:[0,10000], mul:[0,12], div:[1,12] }, allowNegative:true }
+    ];
+
+    const lessons = {
+      add: {
+        title:"Addition (＋)",
+        blocks:[
+          "Add means put together. Start with the first number, then count up by the second number.",
+          "Tip: Use number lines or counters (🟢) to visualize.",
+          "For bigger numbers, line up place values: ones, tens, hundreds."
+        ],
+        example: () => {
+          const a = randInt(2,9), b = randInt(1,9);
+          return `${a} + ${b} = ${a+b}`;
+        }
+      },
+      sub: {
+        title:"Subtraction (−)",
+        blocks:[
+          "Subtract means take away. Start with the first number, count down by the second number.",
+          "Think of the difference: how far apart are the numbers?",
+          "Borrowing: if the top digit is smaller, borrow from the next place."
+        ],
+        example: () => {
+          const a = randInt(5,12), b = randInt(1,5); return `${a} − ${b} = ${a-b}`;
+        }
+      },
+      mul: {
+        title:"Multiplication (×)",
+        blocks:[
+          "Multiply is repeated addition. 3 × 4 means 3 groups of 4.",
+          "Memorize times tables up to 12 × 12 by playing quick drills.",
+          "Use area models and arrays to see rows × columns."
+        ],
+        example: () => {
+          const a = randInt(2,9), b = randInt(2,9); return `${a} × ${b} = ${a*b}`;
+        }
+      },
+      div: {
+        title:"Division (÷)",
+        blocks:[
+          "Divide is sharing equally. 12 ÷ 3 means share 12 into 3 equal groups.",
+          "Related facts: if 4 × 3 = 12, then 12 ÷ 3 = 4.",
+          "Remainder-free practice first; then explore remainders in later grades."
+        ],
+        example: () => {
+          const b = randInt(2,9); const a = b*randInt(2,9); return `${a} ÷ ${b} = ${a/b}`;
+        }
+      }
+    };
+
+    const state = {
+      gradeIndex: 0,
+      mode: 'test', // 'learn' | 'test'
+      op: 'add',
+      current:null,
+      correct: 0,
+      streak: 0,
+      best: 0
+    };
+
+    const storageKey = 'brightmath-v1';
+    function loadStats(){
+      try{ const s = JSON.parse(localStorage.getItem(storageKey)||'{}');
+        if(s.best!==undefined) state.best = s.best;
+        if(s.correct!==undefined) state.correct = s.correct;
+      }catch{}
+      updateStats();
+    }
+    function saveStats(){
+      localStorage.setItem(storageKey, JSON.stringify({best:state.best,correct:state.correct}));
+    }
+
+    function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min }
+    function choice(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+
+    /* ====== UI Builders ====== */
+    const gradeBar = document.getElementById('gradeBar');
+    grades.forEach((g, i)=>{
+      const el = document.createElement('div');
+      el.className = 'pill'+(i===0?' active':'');
+      el.textContent = g.label;
+      el.dataset.index = i;
+      el.addEventListener('click', ()=>{ setGrade(i); });
+      gradeBar.appendChild(el);
+    });
+
+    document.querySelectorAll('[data-mode]').forEach(p=>{
+      p.addEventListener('click', ()=>{
+        document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('active'));
+        p.classList.add('active');
+        state.mode = p.dataset.mode; renderMain();
+      })
+    })
+
+    const ops = document.getElementById('ops');
+    ops.querySelectorAll('button[data-op]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        ops.querySelectorAll('button[data-op]').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        state.op = btn.dataset.op; renderMain();
+      })
+    });
+
+    document.getElementById('resetStats').addEventListener('click',()=>{
+      state.correct = 0; state.streak = 0; state.best = 0; saveStats(); updateStats(); toast('Stats reset','good');
+    });
+
+    function setGrade(i){
+      state.gradeIndex = i;
+      document.querySelectorAll('#gradeBar .pill').forEach((p,idx)=>{
+        p.classList.toggle('active', idx===i);
+      });
+      updateStats();
+      renderMain();
+    }
+
+    function updateStats(){
+      document.getElementById('statGrade').textContent = grades[state.gradeIndex].label;
+      document.getElementById('statCorrect').textContent = state.correct;
+      document.getElementById('statStreak').textContent = state.streak;
+      document.getElementById('statBest').textContent = state.best;
+    }
+
+    function toast(msg, type=''){
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = 'toast '+type; t.style.display='block';
+      setTimeout(()=> t.style.display='none', 1300);
+    }
+
+    /* ====== Problem Generation ====== */
+    function generateProblem(){
+      const g = grades[state.gradeIndex];
+      const op = state.op==='mix' ? choice(['add','sub','mul','div']) : state.op;
+      let a=0,b=0, sym='+', ans=0;
+      if(op==='add'){
+        const [lo,hi] = g.ranges.add; a = randInt(lo,hi); b = randInt(lo,hi); ans=a+b; sym='+';
+      } else if(op==='sub'){
+        const [lo,hi] = g.ranges.sub; a = randInt(lo,hi); b = randInt(lo,hi);
+        if(!g.allowNegative && b>a) [a,b] = [b,a]; ans=a-b; sym='−';
+      } else if(op==='mul'){
+        const [lo,hi] = g.ranges.mul; a = randInt(lo,hi); b = randInt(lo,hi); ans=a*b; sym='×';
+      } else if(op==='div'){
+        const [lo,hi] = g.ranges.div; b = randInt(Math.max(1,lo), Math.max(1,hi));
+        const q = randInt(0, (state.gradeIndex<=1?5:12)); a = b*q; ans = b===0?0: (q); sym='÷';
+        // ensure non-trivial in early grades
+        if(a===0 && state.gradeIndex<2){ return generateProblem(); }
+      }
+      const display = `${a} ${sym} ${b} = ?`;
+      return {a,b,op,sym,ans,display};
+    }
+
+    /* ====== Rendering ====== */
+    function renderMain(){
+      const modeTitle = document.getElementById('modeTitle');
+      const main = document.getElementById('mainContent');
+      if(state.mode==='learn'){
+        modeTitle.textContent = 'Lesson';
+        const opKey = state.op==='mix' ? 'add' : state.op; // default lesson
+        const L = lessons[opKey];
+        main.innerHTML = `
+          <div class="section lesson">
+            <h3>${L.title}</h3>
+            <ul>${L.blocks.map(b=>`<li>${b}</li>`).join('')}</ul>
+            <div class="example"><b>Example:</b> <span id="exText">${L.example()}</span>
+              <div style="margin-top:8px"><button class="btn" id="newExample">New Example</button>
+                <button class="btn alt" id="tryIt">Try It</button></div>
+            </div>
+            <div class="muted">Switch grades to adjust difficulty.</div>
+          </div>
+        `;
+        document.getElementById('newExample').onclick = ()=>{ document.getElementById('exText').textContent = L.example(); };
+        document.getElementById('tryIt').onclick = ()=>{ state.mode='test'; document.querySelector('[data-mode="test"]').click() };
+      } else {
+        modeTitle.textContent = 'Practice';
+        state.current = generateProblem();
+        main.innerHTML = `
+          <div class="card">
+            <div class="row">
+              <div class="big equation" id="equation">${state.current.display}</div>
+            </div>
+            <div class="answer-row">
+              <input class="answer" id="answer" inputmode="numeric" autocomplete="off" placeholder="?" />
+              <button class="btn primary" id="submitBtn">Submit</button>
+              <button class="btn" id="nextBtn">Next</button>
+            </div>
+            <div class="keypad" id="keypad">
+              ${[1,2,3,4,5,6,7,8,9,0].map(n=>`<button data-key="${n}">${n}</button>`).join('')}
+              <button data-key="-">±</button>
+              <button data-key="del">⌫</button>
+              <button data-key="clr">Clear</button>
+            </div>
+          </div>
+        `;
+        const ans = document.getElementById('answer'); ans.focus();
+        document.getElementById('submitBtn').onclick = submitAnswer;
+        document.getElementById('nextBtn').onclick = nextProblem;
+        document.getElementById('keypad').addEventListener('click', (e)=>{
+          const k = e.target.dataset.key; if(!k) return;
+          if(k==='del'){ ans.value = ans.value.slice(0,-1); return; }
+          if(k==='clr'){ ans.value = ''; return; }
+          if(k==='-'){ ans.value = ans.value.startsWith('-')? ans.value.replace('-','') : ('-'+ans.value); return; }
+          ans.value += k;
+          ans.focus();
+        });
+        ans.addEventListener('keydown', (e)=>{
+          if(e.key==='Enter') submitAnswer();
+          if(e.key===' ') { e.preventDefault(); nextProblem(); }
+        });
+      }
+    }
+
+    function submitAnswer(){
+      const val = document.getElementById('answer').value.trim();
+      if(val===''){ toast('Type an answer'); return; }
+      const numeric = Number(val);
+      const correct = (numeric === state.current.ans);
+      if(correct){
+        state.correct++; state.streak++; state.best = Math.max(state.best, state.streak);
+        saveStats(); updateStats();
+        toast('Correct! 🎉','good');
+        nextProblem(true);
+      } else {
+        state.streak = 0; updateStats();
+        toast(`Not quite. Answer: ${state.current.ans}`,'bad');
+        // keep same problem, clear input
+        document.getElementById('answer').value='';
+        document.getElementById('answer').focus();
+      }
+    }
+
+    function nextProblem(auto=false){
+      state.current = generateProblem();
+      const eq = document.getElementById('equation'); if(eq){ eq.textContent = state.current.display; }
+      const ans = document.getElementById('answer'); if(ans){ ans.value=''; ans.focus(); }
+      if(!auto) toast('New problem');
+    }
+
+    // Initialize
+    loadStats();
+    renderMain();
+  </script>
+</body>
+</html>
