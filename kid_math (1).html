@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrightMath PK–5</title>
+  <style>
+    body{margin:0;font-family:sans-serif;background:#0b1020;color:#fff}
+    header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;background:#111c2e;padding:10px;gap:10px}
+    .brand{font-size:1.2rem;font-weight:700}
+    select{padding:6px;border-radius:6px;border:1px solid #274264;background:#0b1220;color:#fff}
+    .pill{padding:6px 12px;border-radius:8px;background:#223047;color:#eee;cursor:pointer;margin-left:6px}
+    .pill.active{background:#375a9e}
+    .container{display:grid;grid-template-columns:250px 1fr;gap:10px;padding:10px}
+    @media(max-width:800px){.container{grid-template-columns:1fr}}
+    .panel{background:#141b2a;border-radius:10px;padding:10px}
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .stat-card{display:flex;align-items:center;gap:8px;background:#1b2640;padding:10px;border-radius:10px}
+    .stat-emoji{font-size:1.4rem}
+    .stat-num{font-size:1.4rem;font-weight:700}
+    .card{background:#1b2640;padding:20px;border-radius:12px;text-align:center}
+    input.answer{font-size:1.4rem;padding:6px;text-align:center;border-radius:8px;border:1px solid #333;background:#0b1220;color:#fff}
+    .btn{padding:8px 12px;border:none;border-radius:8px;cursor:pointer}
+    .btn.primary{background:#22c55e;color:#041b08}
+    .shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px}
+    .item{background:#1b2640;padding:10px;border-radius:10px}
+    .emoji{font-size:2rem}
+    .owned{opacity:.6}
+    .toast{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);background:#222;padding:10px 14px;border-radius:8px;display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">BrightMath PK–5</div>
+    <div>
+      <label>Grade <select id="gradeSelect"></select></label>
+      <label>Operation <select id="opSelect">
+        <option value="add">Addition</option>
+        <option value="sub">Subtraction</option>
+        <option value="mul">Multiplication</option>
+        <option value="div">Division</option>
+        <option value="mix">Mixed</option>
+      </select></label>
+    </div>
+    <div>
+      <span class="pill" data-mode="test">Practice</span>
+      <span class="pill" data-mode="store">Shop</span>
+      <span class="pill" data-mode="collection">Collection</span>
+    </div>
+  </header>
+  <main class="container">
+    <aside class="panel">
+      <h3>Stats</h3>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-emoji">✅</div><div><div class="stat-num" id="statCorrect">0</div><div>Correct</div></div></div>
+        <div class="stat-card"><div class="stat-emoji">🔥</div><div><div class="stat-num" id="statStreak">0</div><div>Streak</div></div></div>
+        <div class="stat-card"><div class="stat-emoji">🏆</div><div><div class="stat-num" id="statBest">0</div><div>Best</div></div></div>
+        <div class="stat-card"><div class="stat-emoji">🪙</div><div><div class="stat-num" id="statCoins">0</div><div>Coins</div></div></div>
+      </div>
+    </aside>
+    <section class="panel">
+      <h2 id="modeTitle">Practice</h2>
+      <div id="mainContent"></div>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div>
+  <script>
+/*****************
+ * State & Setup *
+ *****************/
+const storageKey='brightmath-v5';
+const grades=[
+  { key:'pk', label:'PreK/K', ranges:{ add:[0,5],   sub:[0,5],   mul:[0,1],  div:[1,2]  }, allowNegative:false },
+  { key:'g1', label:'1st',    ranges:{ add:[0,10],  sub:[0,10],  mul:[0,2],  div:[1,2]  }, allowNegative:false },
+  { key:'g2', label:'2nd',    ranges:{ add:[0,20],  sub:[0,20],  mul:[0,5],  div:[1,5]  }, allowNegative:false },
+  { key:'g3', label:'3rd',    ranges:{ add:[0,100], sub:[0,100], mul:[0,10], div:[1,10] }, allowNegative:false },
+  { key:'g4', label:'4th',    ranges:{ add:[0,1000],sub:[0,1000],mul:[0,12], div:[1,12] }, allowNegative:false },
+  { key:'g5', label:'5th',    ranges:{ add:[0,10000],sub:[0,10000],mul:[0,12],div:[1,12]}, allowNegative:true  }
+];
+const catalog=[
+  {id:'sprout', name:'Lucky Sprout', emoji:'🌱', rarity:'Common',    cost:10 },
+  {id:'panda',  name:'Panda Pal',    emoji:'🐼', rarity:'Common',    cost:25 },
+  {id:'star',   name:'Shooting Star',emoji:'🌟', rarity:'Rare',      cost:40 },
+  {id:'bot',    name:'Math Bot',     emoji:'🤖', rarity:'Rare',      cost:75 },
+  {id:'dragon', name:'Tiny Dragon',  emoji:'🐉', rarity:'Epic',      cost:120},
+  {id:'phoenix',name:'Phoenix Feather',emoji:'🪶',rarity:'Epic',     cost:150},
+  {id:'unicorn',name:'Crystal Unicorn',emoji:'🦄',rarity:'Legendary',cost:300},
+  {id:'crown',  name:'Golden Crown', emoji:'👑', rarity:'Legendary', cost:500}
+];
+const state={ gradeIndex:0, mode:'test', op:'add', correct:0, streak:0, best:0, coins:0, current:null, inventory:{} };
+
+function load(){ try{ Object.assign(state, JSON.parse(localStorage.getItem(storageKey)||'{}')); }catch{} updateStats(); buildControls(); }
+function save(){ localStorage.setItem(storageKey, JSON.stringify(state)); }
+
+/**********
+ * Utils  *
+ **********/
+const $ = id => document.getElementById(id);
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min }
+function choice(a){ return a[Math.floor(Math.random()*a.length)] }
+function toast(msg){ const t=$('toast'); if(!t)return; t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1100); }
+
+/****************
+ * UI Controls  *
+ ****************/
+function buildControls(){
+  const gSel=$('gradeSelect'); if(gSel){ gSel.innerHTML = grades.map((g,i)=>`<option value="${i}">${g.label}</option>`).join(''); if(state.gradeIndex==null) state.gradeIndex=0; gSel.value=String(state.gradeIndex); gSel.onchange=()=>{ state.gradeIndex=Number(gSel.value); save(); render(); updateStats(); }; }
+  const opSel=$('opSelect'); if(opSel){ opSel.value=state.op; opSel.onchange=()=>{ state.op=opSel.value; save(); render(); updateStats(); }; }
+  document.querySelectorAll('[data-mode]').forEach(el=>{
+    el.addEventListener('click',()=>{ state.mode = el.dataset.mode; document.querySelectorAll('[data-mode]').forEach(p=>p.classList.toggle('active', p===el)); render(); });
+  });
+}
+
+/*********************
+ * Problem Generator  *
+ *********************/
+function generateProblem(){
+  const g = grades[state.gradeIndex] || grades[0];
+  const op = state.op==='mix' ? choice(['add','sub','mul','div']) : state.op;
+  let a=0,b=0,ans=0,sym='+';
+  if(op==='add'){ const[lo,hi]=g.ranges.add; a=randInt(lo,hi); b=randInt(lo,hi); ans=a+b; sym='+'; }
+  else if(op==='sub'){ const[lo,hi]=g.ranges.sub; a=randInt(lo,hi); b=randInt(lo,hi); if(!g.allowNegative && b>a) [a,b]=[b,a]; ans=a-b; sym='−'; }
+  else if(op==='mul'){ const[lo,hi]=g.ranges.mul; a=randInt(lo,hi); b=randInt(lo,hi); ans=a*b; sym='×'; }
+  else if(op==='div'){ const[lo,hi]=g.ranges.div; b=randInt(Math.max(1,lo),Math.max(1,hi)); const q=randInt(0,(state.gradeIndex<=1?5:12)); a=b*q; ans=q; sym='÷'; if(a===0 && state.gradeIndex<2) return generateProblem(); }
+  return {display:`${a} ${sym} ${b} = ?`, ans, op, a, b};
+}
+
+function coinReward(p){
+  const base = {add:1, sub:1, mul:2, div:2}[p.op] || 1;
+  let spice=0; if(p.op==='add'||p.op==='sub') spice=Math.floor(Math.max(p.a,p.b)/ (state.gradeIndex<3?20:100));
+  if(p.op==='mul') spice=Math.floor((p.a*p.b)/(state.gradeIndex<3?25:60));
+  if(p.op==='div') spice=Math.floor(p.a/(state.gradeIndex<3?20:60));
+  const streakBonus = (state.streak>0 && state.streak%5===4) ? 2 : 0;
+  return Math.max(1, base + spice + streakBonus);
+}
+
+/*************
+ * Rendering *
+ *************/
+function render(){
+  const main=$('mainContent'); if(!main) return;
+  if(state.mode==='test'){
+    $('modeTitle').textContent='Practice';
+    state.current = generateProblem();
+    main.innerHTML = `
+      <div class="card">
+        <div class="big">${state.current.display}</div>
+        <div class="answer-row">
+          <input id="answer" class="answer" inputmode="numeric" autocomplete="off" placeholder="?" />
+          <button class="btn primary" id="submitBtn">Submit</button>
+          <span class="coins"><span>🪙</span> <b id="eqCoins">${state.coins}</b></span>
+        </div>
+      </div>`;
+    const ans=$('answer'); ans&&ans.focus();
+    $('submitBtn').onclick = submitAnswer;
+    ans&&ans.addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
+  }
+  else if(state.mode==='store'){
+    $('modeTitle').textContent='Shop';
+    main.innerHTML = `<div class="section"><div class="coins"><span>🪙</span> <b id="shopCoins">${state.coins}</b></div>
+      <div class="muted">Harder problems = more coins. Every 5-in-a-row adds a bonus!</div></div>
+      <div class="shop" id="shopGrid"></div>`;
+    const grid=$('shopGrid');
+    grid.innerHTML='';
+    catalog.forEach(it=>{
+      const owned = !!state.inventory[it.id];
+      const card=document.createElement('div'); card.className='item'+(owned?' owned':'');
+      card.innerHTML = `
+        <div class="emoji">${it.emoji}</div>
+        <h4>${it.name}</h4>
+        <div class="meta"><span class="badge rar-${it.rarity}">${it.rarity}</span>
+          <span class="coins"><span>🪙</span> ${it.cost}</span></div>
+        <button class="btn ${owned?'':'primary'}" ${owned?'disabled':''}>${owned?'Owned':'Buy'}</button>`;
+      card.querySelector('button').onclick=()=>{
+        if(owned) return toast('Already owned');
+        if(state.coins<it.cost) return toast('Not enough coins');
+        state.coins-=it.cost; state.inventory[it.id]=(state.inventory[it.id]||0)+1; save(); updateStats(); toast(`Purchased ${it.name}!`);
+        const sc=$('shopCoins'); if(sc) sc.textContent=state.coins;
+        card.classList.add('owned'); const b=card.querySelector('button'); b.setAttribute('disabled',''); b.classList.remove('primary'); b.textContent='Owned';
+      };
+      grid.appendChild(card);
+    });
+  }
+  else if(state.mode==='collection'){
+    $('modeTitle').textContent='Collection';
+    const owned = Object.keys(state.inventory).filter(id=>state.inventory[id]>0);
+    main.innerHTML = `<div class="section"><h3>Your Collection</h3><div class="muted">Saved on this device.</div></div>`;
+    const wrap=document.createElement('div'); wrap.className='shop';
+    if(owned.length===0){ const empty=document.createElement('div'); empty.className='item'; empty.innerHTML='<div class="emoji">🫙</div><h4>Empty Jar</h4><div class="meta">No items yet.</div>'; wrap.appendChild(empty);} else {
+      owned.forEach(id=>{ const it=catalog.find(x=>x.id===id)||{emoji:'❓',name:id,rarity:'Common'}; const card=document.createElement('div'); card.className='item owned'; card.innerHTML=`<div class="emoji">${it.emoji}</div><h4>${it.name}</h4><div class="meta"><span class="badge rar-${it.rarity}">${it.rarity}</span><span>×${state.inventory[id]}</span></div>`; wrap.appendChild(card); });
+    }
+    main.appendChild(wrap);
+  }
+}
+
+/****************
+ * Interactions *
+ ****************/
+function submitAnswer(){
+  const ansEl=$('answer'); const val=(ansEl&&ansEl.value!=null)?ansEl.value.trim():''; if(val==='') return toast('Type an answer');
+  const ok = Number(val)===state.current.ans;
+  if(ok){ state.correct++; state.streak++; state.best=Math.max(state.best,state.streak); const r=coinReward(state.current); state.coins+=r; toast(`Correct! +${r} 🪙`); }
+  else { state.streak=0; toast(`Answer was ${state.current.ans}`); }
+  save(); updateStats(); render();
+}
+
+function updateStats(){
+  const set=(id,v)=>{ const el=$(id); if(el) el.textContent=v; };
+  set('statCorrect', state.correct);
+  set('statStreak', state.streak);
+  set('statBest', state.best);
+  set('statCoins', state.coins);
+  set('headCoins', state.coins);
+}
+
+// Boot
+load(); render();
+</script>
+</body>
+</html>
